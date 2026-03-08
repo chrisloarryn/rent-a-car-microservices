@@ -1,5 +1,6 @@
 package com.kodlamaio.configserver;
 
+import com.kodlamaio.commonpackage.utils.constants.Paths;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;
 import org.springframework.boot.SpringApplication;
@@ -7,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.config.server.EnableConfigServer;
 
 @EnableConfigServer
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.kodlamaio.configserver", Paths.ConfigurationBasePackage})
 @OpenAPIDefinition(info = @Info(title = "Rent A Car Config Server", version = "v1"))
 public class ConfigServerApplication {
 

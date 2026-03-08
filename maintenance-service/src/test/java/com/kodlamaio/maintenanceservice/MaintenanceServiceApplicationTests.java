@@ -37,6 +37,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
@@ -176,5 +177,21 @@ class MaintenanceServiceApplicationTests
         RuntimeException exception = assertThrows(RuntimeException.class, () -> fallback.checkIfCarAvailable(UUID.randomUUID()));
 
         assertEquals("Inventory Down", exception.getMessage());
+    }
+
+    @Test
+    void feignClientsConfigCanBeInstantiated()
+    {
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(FeignClientsConfig::new);
+    }
+
+    @Test
+    void testSupportConfigurationProvidesAvailableCarClient() throws InterruptedException
+    {
+        TestSupportConfiguration configuration = new TestSupportConfiguration();
+
+        ClientResponse response = configuration.carClient().checkIfCarAvailable(UUID.randomUUID());
+
+        assertTrue(response.isSuccess());
     }
 }
