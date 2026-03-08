@@ -16,7 +16,7 @@ import java.util.UUID;
 public class Filter
 {
     @Id
-    private String id;
+    private UUID id;
     private UUID carId;
     private UUID modelId;
     private UUID brandId;

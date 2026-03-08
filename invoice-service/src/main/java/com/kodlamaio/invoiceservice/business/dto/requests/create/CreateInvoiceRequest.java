@@ -3,6 +3,7 @@ package com.kodlamaio.invoiceservice.business.dto.requests.create;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,19 +17,20 @@ import java.time.LocalDateTime;
 @Setter
 public class CreateInvoiceRequest
 {
-    @NotBlank
+    @NotBlank(message = "Card holder is required.")
     private String cardHolder;
-    @NotBlank
+    @NotBlank(message = "Model name is required.")
     private String modelName;
-    @NotBlank
+    @NotBlank(message = "Brand name is required.")
     private String brandName;
-    @NotBlank
+    @NotBlank(message = "Plate is required.")
     private String plate;
-    @Min(1996)
+    @Min(value = 1996, message = "Model year must be 1996 or later.")
     private int modelYear;
-    @DecimalMin(value = "0.01")
+    @DecimalMin(value = "0.01", message = "Daily price must be greater than 0.")
     private double dailyPrice;
-    @Min(1)
+    @Min(value = 1, message = "Rented days must be at least 1.")
     private int rentedForDays;
+    @NotNull(message = "Rental timestamp is required.")
     private LocalDateTime rentedAt;
 }

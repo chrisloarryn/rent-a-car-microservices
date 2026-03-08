@@ -8,6 +8,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Setter
 @Getter
@@ -17,7 +18,7 @@ import java.time.LocalDateTime;
 public class Invoice
 {
     @Id
-    private String id;
+    private UUID id;
     private String cardHolder;
     private String modelName;
     private String brandName;

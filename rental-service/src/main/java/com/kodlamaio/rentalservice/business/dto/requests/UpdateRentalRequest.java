@@ -16,12 +16,12 @@ import java.util.UUID;
 @AllArgsConstructor
 public class UpdateRentalRequest
 {
-    @NotNull
+    @NotNull(message = "Car id is required.")
     private UUID carId;
-    @Min(1)
+    @Min(value = 1, message = "Daily price must be at least 1.")
     private double dailyPrice;
-    @Min(1)
+    @Min(value = 1, message = "Rented days must be at least 1.")
     private int rentedForDays;
-    @NotNull
+    @NotNull(message = "Rental date is required.")
     private LocalDate rentedAt;
 }

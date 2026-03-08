@@ -42,6 +42,9 @@ public class InvoiceManager implements InvoiceService
     @Override
     public void add(Invoice invoice)
     {
+        if (invoice.getId() == null) {
+            invoice.setId(UUID.randomUUID());
+        }
         repository.save(invoice);
     }
 }

@@ -46,8 +46,7 @@ public class MaintenanceManager implements MaintenanceService
     @Override
     public GetMaintenanceResponse getById(UUID id)
     {
-        //rules.checkIfMaintenanceExists(id);
-
+        rules.checkIfMaintenanceExists(id);
         Maintenance maintenance = repository.findById(id).get();
 
         GetMaintenanceResponse response = mapper.forResponse().map(maintenance, GetMaintenanceResponse.class);

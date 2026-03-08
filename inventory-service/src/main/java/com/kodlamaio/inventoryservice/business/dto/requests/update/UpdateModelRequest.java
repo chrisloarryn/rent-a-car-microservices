@@ -15,9 +15,9 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateModelRequest {
-    @NotNull
+    @NotNull(message = "Brand id is required.")
     private UUID brandId;
-    @NotBlank
-    @Size(min = 2, max = 20)
+    @NotBlank(message = "Model name is required.")
+    @Size(min = 2, max = 20, message = "Model name must contain between 2 and 20 characters.")
     private String name;
 }

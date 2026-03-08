@@ -18,8 +18,7 @@ public class CarBusinessRules
     {
         if (!repository.existsById(id))
         {
-            // TODO: BusinessException
-            throw new RuntimeException("CAR_NOT_EXISTS");
+            throw new BusinessException("CAR_NOT_EXISTS");
         }
     }
 

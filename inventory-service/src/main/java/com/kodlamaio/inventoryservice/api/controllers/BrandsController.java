@@ -7,9 +7,12 @@ import com.kodlamaio.inventoryservice.business.dto.responses.create.CreateBrandR
 import com.kodlamaio.inventoryservice.business.dto.responses.get.GetAllBrandsResponse;
 import com.kodlamaio.inventoryservice.business.dto.responses.get.GetBrandResponse;
 import com.kodlamaio.inventoryservice.business.dto.responses.update.UpdateBrandResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +21,8 @@ import java.util.UUID;
 @RestController
 @AllArgsConstructor
 @RequestMapping("/api/brands")
+@Validated
+@Tag(name = "Brands", description = "Inventory brand operations")
 public class BrandsController {
     private final BrandService service;
 
@@ -27,7 +32,7 @@ public class BrandsController {
     }
 
     @GetMapping("/{id}")
-    public GetBrandResponse getById(@PathVariable UUID id) {
+    public GetBrandResponse getById(@PathVariable @NotNull UUID id) {
         return service.getById(id);
     }
 
@@ -38,13 +43,13 @@ public class BrandsController {
     }
 
     @PutMapping("/{id}")
-    public UpdateBrandResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateBrandRequest request) {
+    public UpdateBrandResponse update(@PathVariable @NotNull UUID id, @Valid @RequestBody UpdateBrandRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable UUID id) {
+    public void delete(@PathVariable @NotNull UUID id) {
         service.delete(id);
     }
 }

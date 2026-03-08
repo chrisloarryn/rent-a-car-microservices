@@ -42,6 +42,7 @@ public class PaymentManager implements PaymentService
     @Override
     public GetPaymentResponse getById(UUID id)
     {
+        rules.checkIfPaymentExists(id);
         Payment payment = repository.findById(id).orElseThrow();
 
         GetPaymentResponse response = mapper.forResponse().map(payment, GetPaymentResponse.class);

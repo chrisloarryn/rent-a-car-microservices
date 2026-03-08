@@ -9,6 +9,9 @@ public class NotFutureYearValidator implements ConstraintValidator<NotFutureYear
 {
     @Override
     public boolean isValid(Integer value, ConstraintValidatorContext context) {
+        if (value == null) {
+            return true;
+        }
         var currentYear = Year.now().getValue();
         return value <= currentYear;
     }

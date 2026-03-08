@@ -1,5 +1,6 @@
 package com.kodlamaio.filterservice.business.concretes;
 
+import com.kodlamaio.commonpackage.utils.exceptions.BusinessException;
 import com.kodlamaio.commonpackage.utils.mappers.ModelMapperService;
 import com.kodlamaio.filterservice.business.abstracts.FilterService;
 import com.kodlamaio.filterservice.business.dto.responses.GetAllFiltersResponse;
@@ -35,7 +36,7 @@ public class FilterManager implements FilterService
     @Override
     public GetFilterResponse getById(UUID id)
     {
-        var filter = repository.findById(id).orElseThrow();
+        var filter = repository.findById(id).orElseThrow(() -> new BusinessException("FILTER_NOT_EXISTS"));
         var response = mapper.forResponse().map(filter, GetFilterResponse.class);
 
         return response;
@@ -44,6 +45,9 @@ public class FilterManager implements FilterService
     @Override
     public void add(Filter filter)
     {
+        if (filter.getId() == null) {
+            filter.setId(UUID.randomUUID());
+        }
         repository.save(filter);
     }
 
@@ -74,6 +78,10 @@ public class FilterManager implements FilterService
     @Override
     public Filter getByCarId(UUID carId)
     {
-        return repository.findByCarId(carId);
+        Filter filter = repository.findByCarId(carId);
+        if (filter == null) {
+            throw new BusinessException("FILTER_NOT_EXISTS");
+        }
+        return filter;
     }
 }

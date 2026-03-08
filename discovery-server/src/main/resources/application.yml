@@ -6,3 +6,14 @@ spring:
       profile: prod
   config:
     import: configserver:http://localhost:8888
+springdoc:
+  group-configs:
+    - group: ${spring.application.name}
+      paths-to-match:
+        - /api/**
+        - /actuator/**
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

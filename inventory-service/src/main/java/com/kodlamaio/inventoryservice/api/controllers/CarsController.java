@@ -10,12 +10,15 @@ import com.kodlamaio.inventoryservice.business.dto.responses.create.CreateCarRes
 import com.kodlamaio.inventoryservice.business.dto.responses.get.GetAllCarsResponse;
 import com.kodlamaio.inventoryservice.business.dto.responses.get.GetCarResponse;
 import com.kodlamaio.inventoryservice.business.dto.responses.update.UpdateCarResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +27,8 @@ import java.util.UUID;
 @RestController
 @AllArgsConstructor
 @RequestMapping("/api/cars")
+@Validated
+@Tag(name = "Cars", description = "Inventory car operations")
 public class CarsController {
     private final CarService service;
 
@@ -36,7 +41,7 @@ public class CarsController {
 
     @GetMapping("/{id}")
     @PostAuthorize(Roles.AdminOrModerator + " ||  returnObject.modelYear = 2019")
-    public GetCarResponse getById(@PathVariable UUID id) {
+    public GetCarResponse getById(@PathVariable @NotNull UUID id) {
         return service.getById(id);
     }
 
@@ -47,24 +52,24 @@ public class CarsController {
     }
 
     @PutMapping("/{id}")
-    public UpdateCarResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateCarRequest request) {
+    public UpdateCarResponse update(@PathVariable @NotNull UUID id, @Valid @RequestBody UpdateCarRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable UUID id) {
+    public void delete(@PathVariable @NotNull UUID id) {
         service.delete(id);
     }
 
     @GetMapping("/check-car-available/{id}")
-    public ClientResponse checkIfCarAvailable(@PathVariable UUID id)
+    public ClientResponse checkIfCarAvailable(@PathVariable @NotNull UUID id)
     {
          return service.checkIfCarAvailable(id);
     }
 
     @GetMapping("/get-car-for-invoice/{carId}")
-    public CarClientResponse getCarForInvoice(@PathVariable UUID carId)
+    public CarClientResponse getCarForInvoice(@PathVariable @NotNull UUID carId)
     {
         return service.getCarForInvoice(carId);
     }

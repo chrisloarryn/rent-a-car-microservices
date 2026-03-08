@@ -7,7 +7,6 @@ import com.kodlamaio.rentalservice.business.dto.responses.GetAllRentalsResponse;
 import com.kodlamaio.rentalservice.business.dto.responses.GetRentalResponse;
 import com.kodlamaio.rentalservice.business.dto.responses.UpdateRentalResponse;
 
-import javax.swing.plaf.nimbus.State;
 import java.util.List;
 import java.util.UUID;
 

@@ -5,6 +5,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -35,20 +37,25 @@ public class SecurityConfig
         var converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(new KeycloakRoleConverter());
 
-        http.cors().and().authorizeHttpRequests()
-                .requestMatchers("/api/filters", "/api/cars/check-car-available/**",
-                        "/api/cars/get-car-for-invoice/**", "/api/payments/process-rental-payment",
-                        "/actuator/**")
-                .permitAll()
-                .requestMatchers("/api/**")
-                .hasAnyRole("user")
-                .anyRequest()
-                .authenticated()
-                .and()
-                .csrf().disable()
-                .oauth2ResourceServer()
-                .jwt()
-                .jwtAuthenticationConverter(converter);
+        http.cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(
+                                "/actuator/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/api/filters",
+                                "/api/cars/check-car-available/**",
+                                "/api/cars/get-car-for-invoice/**",
+                                "/api/payments/process-rental-payment",
+                                "/api/system/ping")
+                        .permitAll()
+                        .requestMatchers("/api/**")
+                        .hasAnyRole("user")
+                        .anyRequest()
+                        .authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)));
 
         return http.build();
     }
