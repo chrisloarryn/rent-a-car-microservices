@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  kafka:
+    image: bashj79/kafka-kraft
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/apt/kafka/kafka-logs
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    command: start-dev
+    volumes:
+      - .:/apt/jboss/keycloak/imports
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - monitor-net
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - grafana_config:/etc/grafana
+    networks:
+      - monitor-net
+
+  mysql:
+    image: mysql
+    container_name: maintenancedb
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=maintenancedb
+      - MYSQL_USER=mysql
+      - MYSQL_TCP_PORT=3307
+      - VIRTUAL_PORT=3307
+    ports:
+      - '3307:3307'
+    expose:
+      - 3307
+    volumes:
+      - mysqldb_data:/data/db
+
+  mongodb:
+    container_name: turkcell-filterdb
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  mongodb2:
+    container_name: turkcell-invoicedb
+    image: mongo
+    command: mongod --port 27018
+    ports:
+      - "27018:27018"
+    volumes:
+      - mongodb_data:/data/turkcell-invoicedb
+
+volumes:
+  grafana_data:
+  grafana_config:
+  kafka_data:
+  mongodb_data:
+  mysqldb_data:
+
+networks:
+  monitor-net:
+    driver: bridge
