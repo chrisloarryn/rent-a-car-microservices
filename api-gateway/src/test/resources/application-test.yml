@@ -1,0 +1,25 @@
+spring:
+  autoconfigure:
+    exclude: org.springframework.cloud.gateway.config.GatewayClassPathWarningAutoConfiguration
+  main:
+    web-application-type: reactive
+  config:
+    import: "optional:configserver:http://localhost:8888"
+  cloud:
+    config:
+      fail-fast: false
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+eureka:
+  client:
+    enabled: false
+management:
+  endpoint:
+    gateway:
+      access: read-only
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway

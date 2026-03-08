@@ -61,6 +61,18 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mongodb</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.karatelabs</groupId>
             <artifactId>karate-junit5</artifactId>
             <version>${karate.version}</version>
@@ -110,7 +122,7 @@
                                         <argument>--spring.devtools.add-properties=false</argument>
                                         <argument>--server.port=${gatling.server.port}</argument>
                                     </arguments>
-                                    <jvmArguments>-Dspring.devtools.restart.enabled=false -Dspring.devtools.add-properties=false</jvmArguments>
+                                    <jvmArguments>-Dspring.devtools.restart.enabled=false -Dspring.devtools.add-properties=false -Dspring.config.import=optional:configserver:http://localhost:8888 -Dspring.cloud.config.fail-fast=false -Deureka.client.enabled=false</jvmArguments>
                                     <jmxPort>${gatling.spring-boot.jmx-port}</jmxPort>
                                     <maxAttempts>60</maxAttempts>
                                     <useTestClasspath>true</useTestClasspath>

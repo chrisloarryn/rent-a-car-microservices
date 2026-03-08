@@ -110,7 +110,7 @@
                                         <argument>--spring.devtools.add-properties=false</argument>
                                         <argument>--server.port=${gatling.server.port}</argument>
                                     </arguments>
-                                    <jvmArguments>-Dspring.devtools.restart.enabled=false -Dspring.devtools.add-properties=false</jvmArguments>
+                                    <jvmArguments>-Dspring.devtools.restart.enabled=false -Dspring.devtools.add-properties=false -Dspring.config.import=optional:configserver:http://localhost:8888 -Dspring.cloud.config.fail-fast=false -Deureka.client.enabled=false</jvmArguments>
                                     <jmxPort>${gatling.spring-boot.jmx-port}</jmxPort>
                                     <maxAttempts>60</maxAttempts>
                                     <useTestClasspath>true</useTestClasspath>

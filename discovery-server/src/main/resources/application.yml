@@ -5,7 +5,7 @@ spring:
     config:
       profile: prod
   config:
-    import: configserver:http://localhost:8888
+    import: optional:configserver:http://localhost:8888
 springdoc:
   group-configs:
     - group: ${spring.application.name}

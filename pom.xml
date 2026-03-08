@@ -44,6 +44,8 @@
         <lombok.version>1.18.42</lombok.version>
         <modelmapper.version>3.2.6</modelmapper.version>
         <springdoc.version>3.0.2</springdoc.version>
+        <testcontainers.version>1.21.2</testcontainers.version>
+        <build-helper.version>3.6.1</build-helper.version>
     </properties>
 
     <dependencyManagement>
@@ -133,6 +135,25 @@
                 <configuration>
                     <argLine>@{surefireArgLine} -Dfile.encoding=UTF-8</argLine>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>${build-helper.version}</version>
+                <executions>
+                    <execution>
+                        <id>add-gatling-test-sources</id>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>add-test-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>src/gatling/java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

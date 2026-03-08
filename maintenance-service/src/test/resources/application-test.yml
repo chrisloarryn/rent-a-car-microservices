@@ -1,0 +1,16 @@
+spring:
+  config:
+    import: "optional:configserver:http://localhost:8888"
+  cloud:
+    config:
+      fail-fast: false
+  datasource:
+    url: jdbc:h2:mem:maintenancedb;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+eureka:
+  client:
+    enabled: false

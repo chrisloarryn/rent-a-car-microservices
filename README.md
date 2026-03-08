@@ -29,9 +29,12 @@ Multi-module Maven repository for a car rental platform built with Spring Boot m
 ## Technical Highlights
 
 - Parent build centralized in `pom.xml`
+- Maven Wrapper available at repository root
+- `src/gatling/java` is added to the Maven test source set through `build-helper-maven-plugin`
 - `api-gateway` migrated to `spring-cloud-starter-gateway-server-webflux`
 - Request validation standardized with `@Validated` / `@Valid`
 - Consistent API error payload via shared `RestExceptionHandler`
+- Config Server imports are optional in standalone validation flows so CI and local test profiles can boot without external config infrastructure
 - Technical ping endpoint available in:
   - `/api/system/ping` on `api-gateway`
   - `/api/system/ping` on `config-server`
@@ -44,7 +47,7 @@ Multi-module Maven repository for a car rental platform built with Spring Boot m
 
 - SDKMAN
 - JDK `25`
-- Maven `3.9+`
+- Docker for local execution of Mongo-backed Karate suites and Mongo-backed Gatling runs
 - Docker or external infrastructure for the services that require databases, Kafka or config backends in non-test environments
 
 Example local setup:
@@ -57,29 +60,64 @@ java -version
 
 ## Build And Verification
 
-Compile everything:
+Run the full unit/integration suite used by the `unit-tests` workflow job:
 
 ```bash
-mvn test
+./mvnw --batch-mode test -DexcludedGroups=karate
 ```
 
-Run the full coverage gate:
+Run the full coverage gate used by the `coverage-quality-gate` workflow job:
 
 ```bash
-mvn verify -Pcoverage
+./mvnw --batch-mode verify -Pcoverage -DexcludedGroups=karate
+```
+
+Run Karate for one HTTP module:
+
+```bash
+./mvnw --batch-mode -pl inventory-service -am -Dtest=karate.ApiContractsKarateTest -Dsurefire.failIfNoSpecifiedTests=false test
+```
+
+Run Gatling for one HTTP module:
+
+```bash
+./mvnw --batch-mode -pl inventory-service -am -Pgatling verify -DskipTests=true
 ```
 
 Install only the shared library locally:
 
 ```bash
-mvn -pl common-package install -DskipTests
+./mvnw --batch-mode -pl common-package install -DskipTests
 ```
 
-Install only the parent POM locally:
+## Validate Workflow
 
-```bash
-mvn -N install
-```
+GitHub Actions workflow: `.github/workflows/validate.yml`
+
+- `unit-tests` runs on the entire monorepo for every `push` and `pull_request`
+- `coverage-quality-gate` runs on the entire monorepo and enforces `>= 90%` line coverage per module
+- `karate-contract-tests` runs only for changed HTTP modules
+- `gatling-performance-tests` runs only for changed HTTP modules and is a hard gate with `failedRequests == 0`, `successfulRequests == 100%` and `p95 < 1500 ms`
+- `validation-summary` publishes the consolidated workflow summary by stage and module
+- If `common-package/**` or the root `pom.xml` changes, Karate and Gatling fan out to all HTTP modules
+- If only docs or non-functional files change, contract and performance jobs are skipped
+- Workflow summary aggregation is produced by `.github/scripts/publish_validation_summary.py`
+
+Artifacts published by the workflow:
+
+- `unit-test-report`
+- `coverage-report`
+- `karate-report-<module>`
+- `gatling-report-<module>`
+
+## Contract And Performance Suites
+
+- Every HTTP module includes a `karate.ApiContractsKarateTest` runner plus module-specific feature files
+- Every HTTP module includes a Gatling simulation under `src/gatling/java`
+- Gatling assertions are standardized at `failedRequests == 0`, `successfulRequests == 100%` and `p95 < 1500 ms`
+- `api-gateway`, `config-server` and `discovery-server` validate `/api/system/ping` plus native technical endpoints
+- `inventory-service`, `maintenance-service`, `payment-service` and `rental-service` cover happy path, validation and error-contract scenarios
+- `invoice-service` and `filter-service` use Testcontainers for Mongo-backed Karate suites and require Docker locally
 
 ## Coverage Status
 
@@ -145,7 +183,8 @@ This repository currently includes:
 - Swagger/OpenAPI exposure
 - stricter validation on controllers and request DTOs
 - shared error payload standardization
+- Maven Wrapper and GitHub Actions `validate` workflow
 - unit test suites per module
 - JaCoCo enforcement at `>= 90%` line coverage per module
-
-Karate and Gatling dependencies/profile hooks are present in the HTTP modules, but the contract and performance suites themselves are not yet committed in this repository state.
+- Karate contract suites for every HTTP module
+- Gatling smoke/performance suites for every HTTP module

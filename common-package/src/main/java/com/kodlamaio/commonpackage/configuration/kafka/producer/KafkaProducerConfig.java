@@ -3,9 +3,11 @@ package com.kodlamaio.commonpackage.configuration.kafka.producer;
 import com.kodlamaio.commonpackage.utils.kafka.producer.KafkaProducer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.core.KafkaTemplate;
 
 @Configuration
+@Profile("!test & !gatling")
 public class KafkaProducerConfig
 {
     @Bean
