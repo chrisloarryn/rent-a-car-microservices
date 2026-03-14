@@ -1,0 +1,11 @@
+server:
+  port: ${INVENTORY_SERVICE_PORT:9011}
+spring:
+  datasource:
+    url: jdbc:postgresql://${INVENTORY_DB_HOST:localhost}:${INVENTORY_DB_PORT:5433}/${INVENTORY_DB_NAME:inventorydb}
+    username: ${INVENTORY_DB_USERNAME:postgres}
+    password: ${INVENTORY_DB_PASSWORD:postgres}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: ${INVENTORY_JPA_DDL_AUTO:update}

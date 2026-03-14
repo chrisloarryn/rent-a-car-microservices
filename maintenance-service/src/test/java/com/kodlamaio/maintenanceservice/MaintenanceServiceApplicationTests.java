@@ -5,7 +5,6 @@ import com.kodlamaio.commonpackage.events.maintenance.MaintenanceCreatedEvent;
 import com.kodlamaio.commonpackage.events.maintenance.MaintenanceDeletedEvent;
 import com.kodlamaio.commonpackage.utils.dto.responses.ClientResponse;
 import com.kodlamaio.commonpackage.utils.exceptions.BusinessException;
-import com.kodlamaio.commonpackage.utils.kafka.producer.KafkaProducer;
 import com.kodlamaio.commonpackage.utils.mappers.ModelMapperService;
 import com.kodlamaio.maintenanceservice.api.clients.CarClient;
 import com.kodlamaio.maintenanceservice.api.clients.CarClientFallback;
@@ -28,6 +27,9 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,7 +41,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
@@ -59,7 +60,7 @@ class MaintenanceServiceApplicationTests
     @Mock
     private MaintenanceBusinessRules rules;
     @Mock
-    private KafkaProducer producer;
+    private ApplicationEventPublisher applicationEventPublisher;
     @Mock
     private CarClient carClient;
 
@@ -83,14 +84,14 @@ class MaintenanceServiceApplicationTests
         CreateMaintenanceRequest createRequest = new CreateMaintenanceRequest("broken wheel", id);
         UpdateMaintenanceRequest updateRequest = new UpdateMaintenanceRequest(id, "fixed", true, LocalDateTime.now(), LocalDateTime.now());
 
-        controller.getAll();
+        controller.getAll(Pageable.unpaged());
         controller.getById(id);
         controller.add(createRequest);
         controller.returnCarFromMaintenance(id);
         controller.update(id, updateRequest);
         controller.remove(id);
 
-        verify(maintenanceService).getAll();
+        verify(maintenanceService).getAll(any(Pageable.class));
         verify(maintenanceService).getById(id);
         verify(maintenanceService).add(createRequest);
         verify(maintenanceService).returnCarFromMaintenance(id);
@@ -101,7 +102,7 @@ class MaintenanceServiceApplicationTests
     @Test
     void managerCoversCrudAndStateTransitions() throws InterruptedException
     {
-        MaintenanceManager manager = new MaintenanceManager(repository, mapperService, rules, producer);
+        MaintenanceManager manager = new MaintenanceManager(repository, mapperService, rules, applicationEventPublisher);
         UUID id = UUID.randomUUID();
         UUID carId = UUID.randomUUID();
         Maintenance maintenance = new Maintenance();
@@ -117,7 +118,7 @@ class MaintenanceServiceApplicationTests
 
         when(mapperService.forRequest()).thenReturn(mapper);
         when(mapperService.forResponse()).thenReturn(mapper);
-        when(repository.findAll()).thenReturn(List.of(maintenance));
+        when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(maintenance)));
         when(repository.findById(id)).thenReturn(Optional.of(maintenance));
         when(repository.findByCarIdAndIsCompletedIsFalse(carId)).thenReturn(maintenance);
         when(repository.save(any(Maintenance.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -140,9 +141,9 @@ class MaintenanceServiceApplicationTests
         verify(rules).checkIfCarIsNotUnderMaintenance(carId);
         verify(rules).checkIfCarIsUnderMaintenance(carId);
         verify(rules).ensureCarIsAvailable(carId);
-        verify(producer).sendMessage(any(MaintenanceCompletedEvent.class), eq("maintenance-completed"));
-        verify(producer).sendMessage(any(MaintenanceCreatedEvent.class), eq("maintenance-created"));
-        verify(producer).sendMessage(any(MaintenanceDeletedEvent.class), eq("maintenance-deleted"));
+        verify(applicationEventPublisher).publishEvent(any(MaintenanceCompletedEvent.class));
+        verify(applicationEventPublisher).publishEvent(any(MaintenanceCreatedEvent.class));
+        verify(applicationEventPublisher).publishEvent(any(MaintenanceDeletedEvent.class));
     }
 
     @Test

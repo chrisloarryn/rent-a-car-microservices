@@ -2,10 +2,10 @@ package com.kodlamaio.inventoryservice.business.concretes;
 
 import com.kodlamaio.commonpackage.events.inventory.CarCreatedEvent;
 import com.kodlamaio.commonpackage.events.inventory.CarDeletedEvent;
+import com.kodlamaio.commonpackage.utils.dto.responses.PageResponse;
 import com.kodlamaio.commonpackage.utils.dto.responses.CarClientResponse;
 import com.kodlamaio.commonpackage.utils.dto.responses.ClientResponse;
 import com.kodlamaio.commonpackage.utils.exceptions.BusinessException;
-import com.kodlamaio.commonpackage.utils.kafka.producer.KafkaProducer;
 import com.kodlamaio.commonpackage.utils.mappers.ModelMapperService;
 import com.kodlamaio.inventoryservice.business.abstracts.CarService;
 import com.kodlamaio.inventoryservice.business.dto.requests.create.CreateCarRequest;
@@ -19,9 +19,11 @@ import com.kodlamaio.inventoryservice.entities.Car;
 import com.kodlamaio.inventoryservice.entities.enums.State;
 import com.kodlamaio.inventoryservice.repository.CarRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -31,18 +33,15 @@ public class CarManager implements CarService
     private final CarRepository repository;
     private final ModelMapperService mapper;
     private final CarBusinessRules rules;
-    private final KafkaProducer producer;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
-    public List<GetAllCarsResponse> getAll()
+    public PageResponse<GetAllCarsResponse> getAll(Pageable pageable)
     {
-        var cars = repository.findAll();
-        var response = cars
-                .stream()
-                .map(car -> mapper.forResponse().map(car, GetAllCarsResponse.class))
-                .toList();
+        var cars = repository.findAll(pageable)
+                .map(car -> mapper.forResponse().map(car, GetAllCarsResponse.class));
 
-        return response;
+        return PageResponse.from(cars);
     }
 
     @Override
@@ -67,6 +66,7 @@ public class CarManager implements CarService
     }
 
     @Override
+    @Transactional
     public CreateCarResponse add(CreateCarRequest request)
     {
         var car = mapper.forRequest().map(request, Car.class);
@@ -74,14 +74,15 @@ public class CarManager implements CarService
         car.setState(State.AVAILABLE);
         var createdCar = repository.save(car);
 
-        //car created event -> refactor, sendKafkaCarCreatedEvent
-        sendKafkaCarCreatedEvent(createdCar);
+        var event = mapper.forResponse().map(createdCar, CarCreatedEvent.class);
+        applicationEventPublisher.publishEvent(event);
 
         var response = mapper.forResponse().map(createdCar, CreateCarResponse.class);
         return response;
     }
 
     @Override
+    @Transactional
     public UpdateCarResponse update(UUID id, UpdateCarRequest request)
     {
         rules.checkIfCarExists(id);
@@ -94,12 +95,13 @@ public class CarManager implements CarService
     }
 
     @Override
+    @Transactional
     public void delete(UUID id)
     {
         rules.checkIfCarExists(id);
         repository.deleteById(id);
 
-        sendKafkaCarDeletedEvent(id);
+        applicationEventPublisher.publishEvent(new CarDeletedEvent(id));
     }
 
     @Override
@@ -112,20 +114,10 @@ public class CarManager implements CarService
     }
 
     @Override
+    @Transactional
     public void changeStateByCarId(State state, UUID id)
     {
         repository.changeStateByCarId(state, id);
-    }
-
-    private void sendKafkaCarCreatedEvent(Car createdCar)
-    {
-        var event = mapper.forResponse().map(createdCar, CarCreatedEvent.class);
-        producer.sendMessage(event, "car-created");
-    }
-
-    private void sendKafkaCarDeletedEvent(UUID id)
-    {
-        producer.sendMessage( new CarDeletedEvent(id), "car-deleted");
     }
 
     private void validateCarAvailability(UUID id, ClientResponse response)

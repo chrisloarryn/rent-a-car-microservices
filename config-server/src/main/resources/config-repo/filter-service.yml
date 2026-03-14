@@ -1,0 +1,6 @@
+server:
+  port: ${FILTER_SERVICE_PORT:9015}
+spring:
+  data:
+    mongodb:
+      uri: ${FILTER_MONGODB_URI:mongodb://localhost:27017/filterdb}

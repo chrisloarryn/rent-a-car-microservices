@@ -1,19 +1,21 @@
 package com.kodlamaio.commonpackage.events.invoice;
 
-import com.kodlamaio.commonpackage.events.Event;
+import com.kodlamaio.commonpackage.events.BaseEvent;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
-public class CreateInvoiceEvent implements Event
+public class CreateInvoiceEvent extends BaseEvent
 {
+    private UUID rentalId;
     private String cardHolder;
 
     private String modelName;

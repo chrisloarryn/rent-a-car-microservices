@@ -1,7 +1,6 @@
 package com.kodlamaio.rentalservice;
 
 import com.kodlamaio.commonpackage.events.invoice.CreateInvoiceEvent;
-import com.kodlamaio.commonpackage.events.rental.RentalCreatedEvent;
 import com.kodlamaio.commonpackage.events.rental.RentalDeletedEvent;
 import com.kodlamaio.commonpackage.utils.dto.requests.CreateRentalPaymentRequest;
 import com.kodlamaio.commonpackage.utils.dto.responses.CarClientResponse;
@@ -16,6 +15,8 @@ import com.kodlamaio.rentalservice.api.clients.PaymentClientFallback;
 import com.kodlamaio.rentalservice.api.controllers.RentalsController;
 import com.kodlamaio.rentalservice.business.abstracts.RentalService;
 import com.kodlamaio.rentalservice.business.concretes.RentalManager;
+import com.kodlamaio.rentalservice.business.events.RentalCreatedIntegrationEvent;
+import com.kodlamaio.rentalservice.business.events.RentalIntegrationEventListener;
 import com.kodlamaio.rentalservice.business.dto.requests.CreateRentalRequest;
 import com.kodlamaio.rentalservice.business.dto.requests.UpdateRentalRequest;
 import com.kodlamaio.rentalservice.business.dto.responses.CreateRentalResponse;
@@ -32,6 +33,9 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -68,7 +72,9 @@ class RentalServiceApplicationTests
     @Mock
     private PaymentClient paymentClient;
     @Mock
-    private KafkaProducer producer;
+    private ApplicationEventPublisher applicationEventPublisher;
+    @Mock
+    private KafkaProducer kafkaProducer;
 
     @Test
     void mainDelegatesToSpringApplication()
@@ -90,13 +96,13 @@ class RentalServiceApplicationTests
         CreateRentalRequest createRequest = new CreateRentalRequest(id, 100.0, 3, "1234567812345678", "John Doe", 2026, 12, "123");
         UpdateRentalRequest updateRequest = new UpdateRentalRequest(id, 100.0, 3, LocalDate.now());
 
-        controller.getAll();
+        controller.getAll(Pageable.unpaged());
         controller.getById(id);
         controller.add(createRequest);
         controller.update(id, updateRequest);
         controller.delete(id);
 
-        verify(rentalService).getAll();
+        verify(rentalService).getAll(any(Pageable.class));
         verify(rentalService).getById(id);
         verify(rentalService).add(createRequest);
         verify(rentalService).update(id, updateRequest);
@@ -106,7 +112,7 @@ class RentalServiceApplicationTests
     @Test
     void managerCoversCrudAndInvoicePublication() throws InterruptedException
     {
-        RentalManager manager = new RentalManager(repository, mapperService, rules, carClient, producer);
+        RentalManager manager = new RentalManager(repository, mapperService, rules, carClient, applicationEventPublisher);
         UUID id = UUID.randomUUID();
         UUID carId = UUID.randomUUID();
         Rental rental = new Rental();
@@ -130,7 +136,7 @@ class RentalServiceApplicationTests
 
         when(mapperService.forRequest()).thenReturn(mapper);
         when(mapperService.forResponse()).thenReturn(mapper);
-        when(repository.findAll()).thenReturn(List.of(rental));
+        when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(rental)));
         when(repository.findById(id)).thenReturn(Optional.of(rental));
         when(repository.save(any(Rental.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(carClient.getCar(carId)).thenReturn(carClientResponse);
@@ -158,9 +164,8 @@ class RentalServiceApplicationTests
         verify(rules, atLeastOnce()).checkIfRentalExists(id);
         verify(rules).ensureCarIsAvailable(carId);
         verify(rules).ensurePaymentIsProcessed(any(CreateRentalPaymentRequest.class));
-        verify(producer).sendMessage(any(RentalCreatedEvent.class), eq("rental-created"));
-        verify(producer).sendMessage(any(RentalDeletedEvent.class), eq("rental-deleted"));
-        verify(producer).sendMessage(any(CreateInvoiceEvent.class), eq("create-invoice"));
+        verify(applicationEventPublisher).publishEvent(any(RentalCreatedIntegrationEvent.class));
+        verify(applicationEventPublisher).publishEvent(any(RentalDeletedEvent.class));
     }
 
     @Test
@@ -193,5 +198,22 @@ class RentalServiceApplicationTests
 
         assertEquals("Inventory Down", carException.getMessage());
         assertEquals("PAYMENT DOWN", paymentException.getMessage());
+    }
+
+    @Test
+    void integrationListenerPublishesRentalEventsToKafka()
+    {
+        RentalIntegrationEventListener listener = new RentalIntegrationEventListener(kafkaProducer);
+        RentalCreatedIntegrationEvent createdIntegrationEvent = new RentalCreatedIntegrationEvent(
+                new com.kodlamaio.commonpackage.events.rental.RentalCreatedEvent(),
+                new CreateInvoiceEvent());
+        RentalDeletedEvent deletedEvent = new RentalDeletedEvent();
+
+        listener.handle(createdIntegrationEvent);
+        listener.handle(deletedEvent);
+
+        verify(kafkaProducer).sendMessage(createdIntegrationEvent.rentalCreatedEvent(), "rental-created");
+        verify(kafkaProducer).sendMessage(createdIntegrationEvent.createInvoiceEvent(), "create-invoice");
+        verify(kafkaProducer).sendMessage(deletedEvent, "rental-deleted");
     }
 }

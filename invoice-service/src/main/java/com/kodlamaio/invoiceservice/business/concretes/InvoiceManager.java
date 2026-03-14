@@ -1,6 +1,7 @@
 package com.kodlamaio.invoiceservice.business.concretes;
 
 import com.kodlamaio.commonpackage.utils.mappers.ModelMapperService;
+import com.kodlamaio.commonpackage.utils.dto.responses.PageResponse;
 import com.kodlamaio.invoiceservice.business.abstracts.InvoiceService;
 import com.kodlamaio.invoiceservice.business.dto.responses.get.GetAllInvoicesResponse;
 import com.kodlamaio.invoiceservice.business.dto.responses.get.GetInvoiceResponse;
@@ -8,9 +9,9 @@ import com.kodlamaio.invoiceservice.business.rules.InvoiceBusinessRules;
 import com.kodlamaio.invoiceservice.entities.Invoice;
 import com.kodlamaio.invoiceservice.repository.InvoiceRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service //once time of creation?
@@ -22,12 +23,11 @@ public class InvoiceManager implements InvoiceService
     private final InvoiceBusinessRules rules;
 
     @Override
-    public List<GetAllInvoicesResponse> getAll()
+    public PageResponse<GetAllInvoicesResponse> getAll(Pageable pageable)
     {
-        List<Invoice> invoices = repository.findAll();
-        List<GetAllInvoicesResponse> response =
-                invoices.stream().map(invoice -> mapper.forResponse().map(invoice, GetAllInvoicesResponse.class)).toList();
-        return response;
+        var invoices = repository.findAll(pageable)
+                .map(invoice -> mapper.forResponse().map(invoice, GetAllInvoicesResponse.class));
+        return PageResponse.from(invoices);
     }
 
     @Override

@@ -6,12 +6,17 @@ import com.kodlamaio.inventoryservice.business.dto.responses.create.CreateBrandR
 import com.kodlamaio.inventoryservice.business.dto.responses.get.GetAllBrandsResponse;
 import com.kodlamaio.inventoryservice.business.dto.responses.get.GetBrandResponse;
 import com.kodlamaio.inventoryservice.business.dto.responses.update.UpdateBrandResponse;
+import com.kodlamaio.commonpackage.utils.dto.responses.PageResponse;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface BrandService {
-    List<GetAllBrandsResponse> getAll();
+    default List<GetAllBrandsResponse> getAll() {
+        return getAll(Pageable.unpaged()).getContent();
+    }
+    PageResponse<GetAllBrandsResponse> getAll(Pageable pageable);
     GetBrandResponse getById(UUID id);
     CreateBrandResponse add(CreateBrandRequest request);
     UpdateBrandResponse update(UUID id, UpdateBrandRequest request);

@@ -1,0 +1,6 @@
+server:
+  port: ${INVOICE_SERVICE_PORT:9016}
+spring:
+  data:
+    mongodb:
+      uri: ${INVOICE_MONGODB_URI:mongodb://localhost:27018/invoicedb}

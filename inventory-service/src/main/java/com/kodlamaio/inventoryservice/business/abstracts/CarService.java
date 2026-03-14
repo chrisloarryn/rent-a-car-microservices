@@ -9,12 +9,17 @@ import com.kodlamaio.inventoryservice.business.dto.responses.get.GetAllCarsRespo
 import com.kodlamaio.inventoryservice.business.dto.responses.get.GetCarResponse;
 import com.kodlamaio.inventoryservice.business.dto.responses.update.UpdateCarResponse;
 import com.kodlamaio.inventoryservice.entities.enums.State;
+import com.kodlamaio.commonpackage.utils.dto.responses.PageResponse;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface CarService {
-    List<GetAllCarsResponse> getAll();
+    default List<GetAllCarsResponse> getAll() {
+        return getAll(Pageable.unpaged()).getContent();
+    }
+    PageResponse<GetAllCarsResponse> getAll(Pageable pageable);
     GetCarResponse getById(UUID id);
     CarClientResponse getCarForInvoice(UUID id);
     CreateCarResponse add(CreateCarRequest request);

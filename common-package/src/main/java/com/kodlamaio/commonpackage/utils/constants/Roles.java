@@ -5,5 +5,7 @@ public class Roles
     private Roles() {
     }
 
-    public final static String AdminOrModerator = "hasRole('admin') or hasRole('moderator')";
+    public static final String User = "hasRole('user')";
+    public static final String UserOrAbove = "hasAnyRole('user', 'admin', 'moderator')";
+    public static final String AdminOrModerator = "hasAnyRole('admin', 'moderator')";
 }

@@ -8,8 +8,8 @@ Feature: Invoice contract
     Given path 'api', 'invoices'
     When method get
     Then status 200
-    And match response[*].id contains seedId
-    And match response[*].plate contains seedPlate
+    And match response.content[*].id contains seedId
+    And match response.content[*].plate contains seedPlate
 
   Scenario: invoice OpenAPI docs are exposed
     Given path 'v3', 'api-docs'

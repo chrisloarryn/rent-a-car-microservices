@@ -1,0 +1,11 @@
+server:
+  port: ${RENTAL_SERVICE_PORT:9014}
+spring:
+  datasource:
+    url: jdbc:postgresql://${RENTAL_DB_HOST:localhost}:${RENTAL_DB_PORT:5435}/${RENTAL_DB_NAME:rentaldb}
+    username: ${RENTAL_DB_USERNAME:postgres}
+    password: ${RENTAL_DB_PASSWORD:postgres}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: ${RENTAL_JPA_DDL_AUTO:update}

@@ -11,6 +11,6 @@ import java.util.UUID;
         fallback = CarClientFallback.class)
 public interface CarClient
 {
-    @GetMapping(value = "/api/cars/check-car-available/{carId}")
+    @GetMapping(value = "/api/internal/cars/{carId}/availability")
     ClientResponse checkIfCarAvailable(@PathVariable UUID carId) throws InterruptedException;
 }

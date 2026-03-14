@@ -1,7 +1,7 @@
 package com.kodlamaio.inventoryservice.business.concretes;
 
 import com.kodlamaio.commonpackage.events.inventory.ModelDeletedEvent;
-import com.kodlamaio.commonpackage.utils.kafka.producer.KafkaProducer;
+import com.kodlamaio.commonpackage.utils.dto.responses.PageResponse;
 import com.kodlamaio.commonpackage.utils.mappers.ModelMapperService;
 import com.kodlamaio.inventoryservice.business.abstracts.ModelService;
 import com.kodlamaio.inventoryservice.business.dto.requests.create.CreateModelRequest;
@@ -14,9 +14,11 @@ import com.kodlamaio.inventoryservice.business.rules.ModelBusinessRules;
 import com.kodlamaio.inventoryservice.entities.Model;
 import com.kodlamaio.inventoryservice.repository.ModelRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -26,18 +28,15 @@ public class ModelManager implements ModelService
     private final ModelRepository repository;
     private final ModelMapperService mapper;
     private final ModelBusinessRules rules;
-    private final KafkaProducer producer;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
-    public List<GetAllModelsResponse> getAll()
+    public PageResponse<GetAllModelsResponse> getAll(Pageable pageable)
     {
-        var models = repository.findAll();
-        var response = models
-                .stream()
-                .map(model -> mapper.forResponse().map(model, GetAllModelsResponse.class))
-                .toList();
+        var models = repository.findAll(pageable)
+                .map(model -> mapper.forResponse().map(model, GetAllModelsResponse.class));
 
-        return response;
+        return PageResponse.from(models);
     }
 
     @Override
@@ -51,6 +50,7 @@ public class ModelManager implements ModelService
     }
 
     @Override
+    @Transactional
     public CreateModelResponse add(CreateModelRequest request)
     {
         var model = mapper.forRequest().map(request, Model.class);
@@ -62,6 +62,7 @@ public class ModelManager implements ModelService
     }
 
     @Override
+    @Transactional
     public UpdateModelResponse update(UUID id, UpdateModelRequest request)
     {
         rules.checkIfModelExists(id);
@@ -74,11 +75,12 @@ public class ModelManager implements ModelService
     }
 
     @Override
+    @Transactional
     public void delete(UUID id)
     {
         rules.checkIfModelExists(id);
         repository.deleteById(id);
 
-        producer.sendMessage(new ModelDeletedEvent(id), "model-deleted");
+        applicationEventPublisher.publishEvent(new ModelDeletedEvent(id));
     }
 }

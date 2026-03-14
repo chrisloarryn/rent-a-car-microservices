@@ -10,6 +10,7 @@ public class ExceptionTypes
         private Exception() {
         }
 
+        public static final String Authorization = "AUTHORIZATION_EXCEPTION";
         public static final String Validation = "VALIDATION_EXCEPTION";
         public static final String Business = "BUSINESS_EXCEPTION";
         public static final String Runtime = "RUNTIME_EXCEPTION";

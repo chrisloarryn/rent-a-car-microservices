@@ -3,16 +3,20 @@ package com.kodlamaio.commonpackage;
 import com.kodlamaio.commonpackage.configuration.exceptions.RestExceptionHandler;
 import com.kodlamaio.commonpackage.configuration.kafka.producer.KafkaProducerConfig;
 import com.kodlamaio.commonpackage.configuration.mappers.ModelMapperConfig;
+import com.kodlamaio.commonpackage.configuration.security.ApplicationSecurityProperties;
 import com.kodlamaio.commonpackage.configuration.security.SecurityConfig;
+import com.kodlamaio.commonpackage.events.BaseEvent;
 import com.kodlamaio.commonpackage.events.inventory.BrandDeletedEvent;
 import com.kodlamaio.commonpackage.utils.annotations.NotFutureYearValidator;
 import com.kodlamaio.commonpackage.utils.constants.ExceptionTypes;
+import com.kodlamaio.commonpackage.utils.constants.InternalApiHeaders;
 import com.kodlamaio.commonpackage.utils.constants.Paths;
 import com.kodlamaio.commonpackage.utils.constants.Regex;
 import com.kodlamaio.commonpackage.utils.constants.Roles;
 import com.kodlamaio.commonpackage.utils.dto.requests.CreateRentalPaymentRequest;
 import com.kodlamaio.commonpackage.utils.dto.responses.CarClientResponse;
 import com.kodlamaio.commonpackage.utils.dto.responses.ClientResponse;
+import com.kodlamaio.commonpackage.utils.dto.responses.PageResponse;
 import com.kodlamaio.commonpackage.utils.dto.responses.SystemPingResponse;
 import com.kodlamaio.commonpackage.utils.exceptions.BusinessException;
 import com.kodlamaio.commonpackage.utils.kafka.producer.KafkaProducer;
@@ -140,9 +144,21 @@ class CommonPackageApplicationTests
     }
 
     @Test
+    void internalEndpointsRequireApiKey() throws Exception
+    {
+        mockMvc.perform(get("/api/internal/private"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.type").value(ExceptionTypes.Exception.Authorization));
+
+        mockMvc.perform(get("/api/internal/private")
+                        .header(InternalApiHeaders.ApiKey, "rent-a-car-internal-dev-key"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void validationErrorsUseSharedErrorContract() throws Exception
     {
-        mockMvc.perform(post("/api/filters")
+        mockMvc.perform(authenticatedPost("/api/filters")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"\"}"))
                 .andExpect(status().isBadRequest())
@@ -154,7 +170,7 @@ class CommonPackageApplicationTests
     @Test
     void invalidPathParametersUseSharedErrorContract() throws Exception
     {
-        mockMvc.perform(get("/api/cars/check-car-available/not-a-uuid"))
+        mockMvc.perform(authenticatedGet("/api/cars/check-car-available/not-a-uuid"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value(ExceptionTypes.Exception.RequestFormat))
                 .andExpect(jsonPath("$.message").value("Request parameter has an invalid format."));
@@ -191,7 +207,7 @@ class CommonPackageApplicationTests
         CorsConfiguration configuration = corsConfigurationSource.getCorsConfiguration(new MockHttpServletRequest());
 
         assertNotNull(configuration);
-        assertTrue(configuration.getAllowedOrigins().contains("http://localhost:5432"));
+        assertTrue(configuration.getAllowedOrigins().contains("http://localhost:3000"));
         assertTrue(configuration.getAllowedMethods().contains("GET"));
     }
 
@@ -280,8 +296,11 @@ class CommonPackageApplicationTests
         SystemPingResponse systemPingResponse = new SystemPingResponse("test-service");
         ClientResponse clientResponse = new ClientResponse(true, "ok");
         CarClientResponse carClientResponse = new CarClientResponse("Model S", "Brand", "12 ABC 123", 2024);
+        PageResponse<String> pageResponse = new PageResponse<>(List.of("one"), 0, 20, 1, 1, true, true, List.of("id,asc"));
+        ApplicationSecurityProperties securityProperties = new ApplicationSecurityProperties();
         CreateRentalPaymentRequest request = new CreateRentalPaymentRequest("1234567812345678", "John Doe", 2026, 8, "123", 10.0);
         BusinessException businessException = new BusinessException("boom");
+        BrandDeletedEvent event = new BrandDeletedEvent(UUID.randomUUID());
 
         assertEquals(ExceptionTypes.Exception.Business, exceptionResult.getType());
         assertEquals("failure", exceptionResult.getMessage());
@@ -290,8 +309,12 @@ class CommonPackageApplicationTests
         assertTrue(clientResponse.isSuccess());
         assertEquals("ok", clientResponse.getMessage());
         assertEquals("Model S", carClientResponse.getModelName());
+        assertEquals("one", pageResponse.getContent().getFirst());
+        assertEquals("rent-a-car-internal-dev-key", securityProperties.getInternalApiKey());
         assertEquals("1234567812345678", request.getCardNumber());
         assertEquals("boom", businessException.getMessage());
+        assertNotNull(event.getEventId());
+        assertTrue(event instanceof BaseEvent);
     }
 
     @Test
@@ -307,6 +330,7 @@ class CommonPackageApplicationTests
         assertDoesNotThrow(() -> instantiate(Paths.Invoice.class));
         assertDoesNotThrow(() -> instantiate(Regex.class));
         assertDoesNotThrow(() -> instantiate(Roles.class));
+        assertDoesNotThrow(() -> instantiate(InternalApiHeaders.class));
         assertDoesNotThrow(() -> instantiate(ExceptionTypes.class));
         assertDoesNotThrow(() -> instantiate(ExceptionTypes.Exception.class));
     }
@@ -377,6 +401,11 @@ class CommonPackageApplicationTests
         return get(path).header("Authorization", "Bearer test-token");
     }
 
+    private static org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder authenticatedPost(String path)
+    {
+        return post(path).header("Authorization", "Bearer test-token");
+    }
+
     @SpringBootConfiguration
     @EnableAutoConfiguration
     @Import({SecurityConfig.class, RestExceptionHandler.class})
@@ -405,6 +434,12 @@ class CommonPackageApplicationTests
             String secure()
             {
                 return "secure";
+            }
+
+            @GetMapping("/api/internal/private")
+            String internal()
+            {
+                return "internal";
             }
 
             @PostMapping("/api/filters")

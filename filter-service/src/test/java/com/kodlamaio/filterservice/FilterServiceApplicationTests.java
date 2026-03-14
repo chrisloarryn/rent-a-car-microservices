@@ -28,6 +28,8 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -72,10 +74,10 @@ class FilterServiceApplicationTests
         FiltersController controller = new FiltersController(filterService);
         UUID id = UUID.randomUUID();
 
-        controller.getAll();
+        controller.getAll(Pageable.unpaged());
         controller.getById(id);
 
-        verify(filterService).getAll();
+        verify(filterService).getAll(any(Pageable.class));
         verify(filterService).getById(id);
     }
 
@@ -91,7 +93,7 @@ class FilterServiceApplicationTests
         GetFilterResponse detailResponse = new GetFilterResponse();
 
         when(mapperService.forResponse()).thenReturn(mapper);
-        when(repository.findAll()).thenReturn(List.of(filter));
+        when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(filter)));
         when(repository.findById(id)).thenReturn(Optional.of(filter));
         when(repository.findByCarId(carId)).thenReturn(filter);
         when(mapper.map(filter, GetAllFiltersResponse.class)).thenReturn(listResponse);

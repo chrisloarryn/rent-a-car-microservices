@@ -8,7 +8,7 @@ Feature: Filter contract
     Given path 'api', 'filters'
     When method get
     Then status 200
-    And match response[*].id contains seedId
+    And match response.content[*].id contains seedId
 
     Given path 'api', 'filters', seedId
     When method get

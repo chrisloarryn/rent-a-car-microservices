@@ -1,14 +1,14 @@
 package com.kodlamaio.rentalservice.business.concretes;
 
 import com.kodlamaio.commonpackage.events.invoice.CreateInvoiceEvent;
-import com.kodlamaio.commonpackage.events.rental.RentalCreatedEvent;
 import com.kodlamaio.commonpackage.events.rental.RentalDeletedEvent;
 import com.kodlamaio.commonpackage.utils.dto.requests.CreateRentalPaymentRequest;
 import com.kodlamaio.commonpackage.utils.dto.responses.CarClientResponse;
-import com.kodlamaio.commonpackage.utils.kafka.producer.KafkaProducer;
+import com.kodlamaio.commonpackage.utils.dto.responses.PageResponse;
 import com.kodlamaio.commonpackage.utils.mappers.ModelMapperService;
 import com.kodlamaio.rentalservice.api.clients.CarClient;
 import com.kodlamaio.rentalservice.business.abstracts.RentalService;
+import com.kodlamaio.rentalservice.business.events.RentalCreatedIntegrationEvent;
 import com.kodlamaio.rentalservice.business.dto.requests.CreateRentalRequest;
 import com.kodlamaio.rentalservice.business.dto.requests.UpdateRentalRequest;
 import com.kodlamaio.rentalservice.business.dto.responses.CreateRentalResponse;
@@ -19,11 +19,13 @@ import com.kodlamaio.rentalservice.business.rules.RentalBusinessRules;
 import com.kodlamaio.rentalservice.entities.Rental;
 import com.kodlamaio.rentalservice.repository.RentalRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -34,19 +36,15 @@ public class RentalManager implements RentalService
     private final ModelMapperService mapper;
     private final RentalBusinessRules rules;
     private final CarClient carClient;
-
-    private final KafkaProducer producer;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
-    public List<GetAllRentalsResponse> getAll()
+    public PageResponse<GetAllRentalsResponse> getAll(Pageable pageable)
     {
-        var rentals = repository.findAll();
-        var response = rentals
-                .stream()
-                .map(rental -> mapper.forResponse().map(rental, GetAllRentalsResponse.class))
-                .toList();
+        var rentals = repository.findAll(pageable)
+                .map(rental -> mapper.forResponse().map(rental, GetAllRentalsResponse.class));
 
-        return response;
+        return PageResponse.from(rentals);
     }
 
     @Override
@@ -60,9 +58,12 @@ public class RentalManager implements RentalService
     }
 
     @Override
+    @Transactional
     public CreateRentalResponse add(CreateRentalRequest request) throws InterruptedException
     {
         rules.ensureCarIsAvailable(request.getCarId());
+        CarClientResponse carClientResponse = carClient.getCar(request.getCarId());
+
         Rental rental = mapper.forRequest().map(request, Rental.class);
         rental.setId(null);
         rental.setTotalPrice(getTotalPrice(rental));
@@ -74,24 +75,23 @@ public class RentalManager implements RentalService
         paymentRequest.setPrice(getTotalPrice(rental));
         rules.ensurePaymentIsProcessed(paymentRequest);
 
-        //save rental
         repository.save(rental);
-        sendKafkaRentalCreatedEvent(request.getCarId());
-
-        //publish invoice
-        CarClientResponse carClientResponse = carClient.getCar(request.getCarId()); //hata olursa????
         CreateInvoiceEvent createInvoiceEvent = new CreateInvoiceEvent();
         mapper.forRequest().map(request, createInvoiceEvent);
         mapper.forRequest().map(carClientResponse, createInvoiceEvent);
         mapper.forRequest().map(rental, createInvoiceEvent);
+        createInvoiceEvent.setRentalId(rental.getId());
         createInvoiceEvent.setRentedAt(LocalDateTime.now());
-        sendKafkaInvoiceCreateEvent(createInvoiceEvent);
+        applicationEventPublisher.publishEvent(new RentalCreatedIntegrationEvent(
+                new com.kodlamaio.commonpackage.events.rental.RentalCreatedEvent(request.getCarId()),
+                createInvoiceEvent));
 
         var response = mapper.forResponse().map(rental, CreateRentalResponse.class);
         return response;
     }
 
     @Override
+    @Transactional
     public UpdateRentalResponse update(UUID id, UpdateRentalRequest request)
     {
         rules.checkIfRentalExists(id);
@@ -104,12 +104,13 @@ public class RentalManager implements RentalService
     }
 
     @Override
+    @Transactional
     public void delete(UUID id)
     {
         rules.checkIfRentalExists(id);
         var carId = repository.findById(id).orElseThrow().getCarId();
         repository.deleteById(id);
-        sendKafkaRentalDeletedEvent(carId);
+        applicationEventPublisher.publishEvent(new RentalDeletedEvent(carId));
 
     }
 
@@ -118,18 +119,4 @@ public class RentalManager implements RentalService
         return rental.getDailyPrice() * rental.getRentedForDays();
     }
 
-    private void sendKafkaRentalCreatedEvent(UUID carId)
-    {
-        producer.sendMessage(new RentalCreatedEvent(carId), "rental-created");
-    }
-
-    private void sendKafkaRentalDeletedEvent(UUID carId)
-    {
-        producer.sendMessage(new RentalDeletedEvent(carId), "rental-deleted");
-    }
-
-    private void sendKafkaInvoiceCreateEvent(CreateInvoiceEvent event)
-    {
-        producer.sendMessage(event, "create-invoice");
-    }
 }

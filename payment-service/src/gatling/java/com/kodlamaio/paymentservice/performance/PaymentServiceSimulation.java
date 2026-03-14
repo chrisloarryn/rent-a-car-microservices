@@ -46,7 +46,7 @@ public class PaymentServiceSimulation extends Simulation
                     .get("/api/payments/#{paymentId}")
                     .check(status().is(200)))
             .exec(http("process_rental_payment")
-                    .post("/api/payments/process-rental-payment")
+                    .post("/api/internal/payments/rental-processing")
                     .body(StringBody("""
                             {
                               "cardNumber":"#{cardNumber}",

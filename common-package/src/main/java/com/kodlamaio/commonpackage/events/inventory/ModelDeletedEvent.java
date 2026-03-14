@@ -1,6 +1,6 @@
 package com.kodlamaio.commonpackage.events.inventory;
 
-import com.kodlamaio.commonpackage.events.Event;
+import com.kodlamaio.commonpackage.events.BaseEvent;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +12,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Getter
 @Setter
-public class ModelDeletedEvent implements Event
+public class ModelDeletedEvent extends BaseEvent
 {
     private UUID modelId;
 }

@@ -10,8 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
         fallback = PaymentClientFallback.class)
 public interface PaymentClient
 {
-    //@Headers("Content-Type: application/json")
-    @PostMapping(value = "/api/payments/process-rental-payment")
+    @PostMapping(value = "/api/internal/payments/rental-processing")
     ClientResponse processRentalPayment(@RequestBody CreateRentalPaymentRequest request)
             throws InterruptedException;
 }

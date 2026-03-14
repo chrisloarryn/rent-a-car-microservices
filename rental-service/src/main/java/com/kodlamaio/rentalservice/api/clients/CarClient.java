@@ -14,9 +14,9 @@ import java.util.UUID;
 @Retry(name="rentalServiceCallsInventory")
 public interface CarClient
 {
-    @GetMapping(value = "/api/cars/check-car-available/{carId}")
+    @GetMapping(value = "/api/internal/cars/{carId}/availability")
     ClientResponse checkIfCarAvailable(@PathVariable UUID carId) throws InterruptedException;
 
-    @GetMapping(value = "/api/cars/get-car-for-invoice/{carId}")
+    @GetMapping(value = "/api/internal/cars/{carId}/invoice-details")
     CarClientResponse getCar(@PathVariable UUID carId) throws InterruptedException;
 }

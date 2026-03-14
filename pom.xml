@@ -46,6 +46,9 @@
         <springdoc.version>3.0.2</springdoc.version>
         <testcontainers.version>1.21.2</testcontainers.version>
         <build-helper.version>3.6.1</build-helper.version>
+        <config.server.url>http://localhost:8888</config.server.url>
+        <gatling.common.jvm.arguments>-Dspring.devtools.restart.enabled=false -Dspring.devtools.add-properties=false -Dspring.config.import=optional:configserver:${config.server.url} -Dspring.cloud.config.fail-fast=false -Deureka.client.enabled=false</gatling.common.jvm.arguments>
+        <gatling.gateway.jvm.arguments>${gatling.common.jvm.arguments} -Dspring.autoconfigure.exclude=org.springframework.cloud.gateway.config.GatewayClassPathWarningAutoConfiguration -Dspring.main.web-application-type=reactive -Dmanagement.endpoint.gateway.access=read-only</gatling.gateway.jvm.arguments>
     </properties>
 
     <dependencyManagement>

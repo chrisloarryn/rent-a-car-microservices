@@ -8,13 +8,18 @@ import com.kodlamaio.paymentservice.business.dto.responses.create.CreatePaymentR
 import com.kodlamaio.paymentservice.business.dto.responses.get.GetAllPaymentsResponse;
 import com.kodlamaio.paymentservice.business.dto.responses.get.GetPaymentResponse;
 import com.kodlamaio.paymentservice.business.dto.responses.update.UpdatePaymentResponse;
+import com.kodlamaio.commonpackage.utils.dto.responses.PageResponse;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface PaymentService
 {
-    List<GetAllPaymentsResponse> getAll();
+    default List<GetAllPaymentsResponse> getAll() {
+        return getAll(Pageable.unpaged()).getContent();
+    }
+    PageResponse<GetAllPaymentsResponse> getAll(Pageable pageable);
     GetPaymentResponse getById(UUID id);
     CreatePaymentResponse add(CreatePaymentRequest request);
     UpdatePaymentResponse update(UUID id, UpdatePaymentRequest request);

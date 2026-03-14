@@ -3,9 +3,9 @@ spring:
     name: invoice-service
   cloud:
     config:
-      profile: dev
+      profile: ${SPRING_CLOUD_CONFIG_PROFILE:dev}
   config:
-    import: optional:configserver:http://localhost:8888
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
 springdoc:
   group-configs:
     - group: ${spring.application.name}

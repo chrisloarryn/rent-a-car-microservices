@@ -25,6 +25,8 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -79,14 +81,14 @@ class PaymentServiceApplicationTests
         UpdatePaymentRequest updateRequest = new UpdatePaymentRequest("1234567812345678", "John Doe", 2026, 12, "123", 500.0);
         CreateRentalPaymentRequest rentalRequest = new CreateRentalPaymentRequest("1234567812345678", "John Doe", 2026, 12, "123", 100.0);
 
-        controller.getAll();
+        controller.getAll(Pageable.unpaged());
         controller.getById(id);
         controller.add(createRequest);
         controller.update(id, updateRequest);
         controller.delete(id);
         controller.processRentalPayment(rentalRequest);
 
-        verify(paymentService).getAll();
+        verify(paymentService).getAll(any(Pageable.class));
         verify(paymentService).getById(id);
         verify(paymentService).add(createRequest);
         verify(paymentService).update(id, updateRequest);
@@ -112,7 +114,7 @@ class PaymentServiceApplicationTests
 
         when(mapperService.forRequest()).thenReturn(mapper);
         when(mapperService.forResponse()).thenReturn(mapper);
-        when(repository.findAll()).thenReturn(List.of(payment));
+        when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(payment)));
         when(repository.findById(id)).thenReturn(Optional.of(payment));
         when(repository.findByCardNumber(rentalRequest.getCardNumber())).thenReturn(payment);
         when(mapper.map(payment, GetAllPaymentsResponse.class)).thenReturn(listResponse);

@@ -19,6 +19,8 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +29,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
@@ -62,10 +65,13 @@ class InvoiceServiceApplicationTests
     void controllerDelegatesToService()
     {
         InvoicesController controller = new InvoicesController(invoiceService);
+        UUID id = UUID.randomUUID();
 
-        controller.getAll();
+        controller.getAll(Pageable.unpaged());
+        controller.getById(id);
 
-        verify(invoiceService).getAll();
+        verify(invoiceService).getAll(any(Pageable.class));
+        verify(invoiceService).getById(id);
     }
 
     @Test
@@ -78,7 +84,7 @@ class InvoiceServiceApplicationTests
         GetInvoiceResponse detailResponse = new GetInvoiceResponse();
 
         when(mapperService.forResponse()).thenReturn(mapper);
-        when(repository.findAll()).thenReturn(List.of(invoice));
+        when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(invoice)));
         when(repository.findById(id)).thenReturn(Optional.of(invoice));
         when(mapper.map(invoice, GetAllInvoicesResponse.class)).thenReturn(listResponse);
         when(mapper.map(invoice, GetInvoiceResponse.class)).thenReturn(detailResponse);

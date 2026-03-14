@@ -1,6 +1,6 @@
 package com.kodlamaio.commonpackage.events.rental;
 
-import com.kodlamaio.commonpackage.events.Event;
+import com.kodlamaio.commonpackage.events.BaseEvent;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,7 +12,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Getter
 @Setter
-public class RentalCreatedEvent implements Event
+public class RentalCreatedEvent extends BaseEvent
 {
     private UUID carId;
 }

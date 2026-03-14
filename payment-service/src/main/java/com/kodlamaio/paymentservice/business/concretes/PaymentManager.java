@@ -2,6 +2,7 @@ package com.kodlamaio.paymentservice.business.concretes;
 
 import com.kodlamaio.commonpackage.utils.dto.responses.ClientResponse;
 import com.kodlamaio.commonpackage.utils.dto.requests.CreateRentalPaymentRequest;
+import com.kodlamaio.commonpackage.utils.dto.responses.PageResponse;
 import com.kodlamaio.commonpackage.utils.mappers.ModelMapperService;
 import com.kodlamaio.paymentservice.business.abstracts.PaymentService;
 import com.kodlamaio.paymentservice.business.abstracts.PostService;
@@ -15,9 +16,10 @@ import com.kodlamaio.paymentservice.business.rules.PaymentBusinessRules;
 import com.kodlamaio.paymentservice.entities.Payment;
 import com.kodlamaio.paymentservice.repository.PaymentRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -30,13 +32,11 @@ public class PaymentManager implements PaymentService
     private final PaymentBusinessRules rules;
 
     @Override
-    public List<GetAllPaymentsResponse> getAll()
+    public PageResponse<GetAllPaymentsResponse> getAll(Pageable pageable)
     {
-        List<Payment> payments = repository.findAll();
-
-        List<GetAllPaymentsResponse> response =
-                payments.stream().map(payment -> mapper.forResponse().map(payment, GetAllPaymentsResponse.class)).toList();
-        return response;
+        var payments = repository.findAll(pageable)
+                .map(payment -> mapper.forResponse().map(payment, GetAllPaymentsResponse.class));
+        return PageResponse.from(payments);
     }
 
     @Override
@@ -50,6 +50,7 @@ public class PaymentManager implements PaymentService
     }
 
     @Override
+    @Transactional
     public CreatePaymentResponse add(CreatePaymentRequest request)
     {
         rules.checkIfCardExistsByCardNumber(request);
@@ -63,6 +64,7 @@ public class PaymentManager implements PaymentService
     }
 
     @Override
+    @Transactional
     public UpdatePaymentResponse update(UUID id, UpdatePaymentRequest request)
     {
         rules.checkIfPaymentExists(id);
@@ -76,6 +78,7 @@ public class PaymentManager implements PaymentService
     }
 
     @Override
+    @Transactional
     public void delete(UUID id)
     {
         rules.checkIfPaymentExists(id);
@@ -84,6 +87,7 @@ public class PaymentManager implements PaymentService
     }
 
     @Override
+    @Transactional
     public ClientResponse processRentalPayment(CreateRentalPaymentRequest request)
     {
         ClientResponse response = new ClientResponse();

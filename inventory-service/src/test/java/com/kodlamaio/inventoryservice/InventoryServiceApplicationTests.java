@@ -12,7 +12,6 @@ import com.kodlamaio.commonpackage.events.rental.RentalDeletedEvent;
 import com.kodlamaio.commonpackage.utils.dto.responses.CarClientResponse;
 import com.kodlamaio.commonpackage.utils.dto.responses.ClientResponse;
 import com.kodlamaio.commonpackage.utils.exceptions.BusinessException;
-import com.kodlamaio.commonpackage.utils.kafka.producer.KafkaProducer;
 import com.kodlamaio.commonpackage.utils.mappers.ModelMapperService;
 import com.kodlamaio.inventoryservice.api.controllers.BrandsController;
 import com.kodlamaio.inventoryservice.api.controllers.CarsController;
@@ -60,6 +59,9 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -105,7 +107,7 @@ class InventoryServiceApplicationTests
     @Mock
     private ModelBusinessRules modelBusinessRules;
     @Mock
-    private KafkaProducer producer;
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @Test
     void mainDelegatesToSpringApplication()
@@ -133,37 +135,37 @@ class InventoryServiceApplicationTests
         CreateModelRequest createModelRequest = new CreateModelRequest(UUID.randomUUID(), "A3");
         UpdateModelRequest updateModelRequest = new UpdateModelRequest(UUID.randomUUID(), "A4");
 
-        brandsController.getAll();
+        brandsController.getAll(Pageable.unpaged());
         brandsController.getById(id);
         brandsController.add(createBrandRequest);
         brandsController.update(id, updateBrandRequest);
         brandsController.delete(id);
-        carsController.getAll();
+        carsController.getAll(Pageable.unpaged());
         carsController.getById(id);
         carsController.add(createCarRequest);
         carsController.update(id, updateCarRequest);
         carsController.delete(id);
         carsController.checkIfCarAvailable(id);
         carsController.getCarForInvoice(id);
-        modelsController.getAll();
+        modelsController.getAll(Pageable.unpaged());
         modelsController.getById(id);
         modelsController.add(createModelRequest);
         modelsController.update(id, updateModelRequest);
         modelsController.delete(id);
 
-        verify(brandService).getAll();
+        verify(brandService).getAll(any(Pageable.class));
         verify(brandService).getById(id);
         verify(brandService).add(createBrandRequest);
         verify(brandService).update(id, updateBrandRequest);
         verify(brandService).delete(id);
-        verify(carService).getAll();
+        verify(carService).getAll(any(Pageable.class));
         verify(carService).getById(id);
         verify(carService).add(createCarRequest);
         verify(carService).update(id, updateCarRequest);
         verify(carService).delete(id);
         verify(carService).checkIfCarAvailable(id);
         verify(carService).getCarForInvoice(id);
-        verify(modelService).getAll();
+        verify(modelService).getAll(any(Pageable.class));
         verify(modelService).getById(id);
         verify(modelService).add(createModelRequest);
         verify(modelService).update(id, updateModelRequest);
@@ -173,7 +175,7 @@ class InventoryServiceApplicationTests
     @Test
     void brandManagerCoversCrudFlowAndPublishesDeleteEvent()
     {
-        BrandManager manager = new BrandManager(brandRepository, mapperService, brandBusinessRules, producer);
+        BrandManager manager = new BrandManager(brandRepository, mapperService, brandBusinessRules, applicationEventPublisher);
         UUID id = UUID.randomUUID();
         Brand brand = new Brand();
         CreateBrandRequest createRequest = new CreateBrandRequest("Audi");
@@ -185,7 +187,7 @@ class InventoryServiceApplicationTests
 
         when(mapperService.forRequest()).thenReturn(mapper);
         when(mapperService.forResponse()).thenReturn(mapper);
-        when(brandRepository.findAll()).thenReturn(List.of(brand));
+        when(brandRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(brand)));
         when(brandRepository.findById(id)).thenReturn(Optional.of(brand));
         when(mapper.map(brand, GetAllBrandsResponse.class)).thenReturn(listResponse);
         when(mapper.map(brand, GetBrandResponse.class)).thenReturn(detailResponse);
@@ -203,13 +205,13 @@ class InventoryServiceApplicationTests
         verify(brandBusinessRules, atLeastOnce()).checkIfBrandExists(id);
         verify(brandRepository, atLeastOnce()).save(brand);
         verify(brandRepository).deleteById(id);
-        verify(producer).sendMessage(any(BrandDeletedEvent.class), eq("brand-deleted"));
+        verify(applicationEventPublisher).publishEvent(any(BrandDeletedEvent.class));
     }
 
     @Test
     void carManagerCoversCrudAndAvailabilityScenarios()
     {
-        CarManager manager = new CarManager(carRepository, mapperService, carBusinessRules, producer);
+        CarManager manager = new CarManager(carRepository, mapperService, carBusinessRules, applicationEventPublisher);
         UUID id = UUID.randomUUID();
         Car car = new Car();
         car.setId(id);
@@ -224,7 +226,7 @@ class InventoryServiceApplicationTests
 
         when(mapperService.forRequest()).thenReturn(mapper);
         when(mapperService.forResponse()).thenReturn(mapper);
-        when(carRepository.findAll()).thenReturn(List.of(car));
+        when(carRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(car)));
         when(carRepository.findById(id)).thenReturn(Optional.of(car));
         when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(mapper.map(car, GetAllCarsResponse.class)).thenReturn(listResponse);
@@ -254,14 +256,14 @@ class InventoryServiceApplicationTests
 
         verify(carBusinessRules, atLeastOnce()).checkIfCarExists(id);
         verify(carRepository).changeStateByCarId(State.RENTED, id);
-        verify(producer).sendMessage(any(CarCreatedEvent.class), eq("car-created"));
-        verify(producer).sendMessage(any(CarDeletedEvent.class), eq("car-deleted"));
+        verify(applicationEventPublisher, atLeastOnce()).publishEvent(any(CarCreatedEvent.class));
+        verify(applicationEventPublisher).publishEvent(any(CarDeletedEvent.class));
     }
 
     @Test
     void modelManagerCoversCrudFlowAndPublishesDeleteEvent()
     {
-        ModelManager manager = new ModelManager(modelRepository, mapperService, modelBusinessRules, producer);
+        ModelManager manager = new ModelManager(modelRepository, mapperService, modelBusinessRules, applicationEventPublisher);
         UUID id = UUID.randomUUID();
         Model model = new Model();
         CreateModelRequest createRequest = new CreateModelRequest(UUID.randomUUID(), "A3");
@@ -273,7 +275,7 @@ class InventoryServiceApplicationTests
 
         when(mapperService.forRequest()).thenReturn(mapper);
         when(mapperService.forResponse()).thenReturn(mapper);
-        when(modelRepository.findAll()).thenReturn(List.of(model));
+        when(modelRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(model)));
         when(modelRepository.findById(id)).thenReturn(Optional.of(model));
         when(mapper.map(model, GetAllModelsResponse.class)).thenReturn(listResponse);
         when(mapper.map(model, GetModelResponse.class)).thenReturn(detailResponse);
@@ -291,7 +293,7 @@ class InventoryServiceApplicationTests
         verify(modelBusinessRules, atLeastOnce()).checkIfModelExists(id);
         verify(modelRepository, atLeastOnce()).save(model);
         verify(modelRepository).deleteById(id);
-        verify(producer).sendMessage(any(ModelDeletedEvent.class), eq("model-deleted"));
+        verify(applicationEventPublisher).publishEvent(any(ModelDeletedEvent.class));
     }
 
     @Test

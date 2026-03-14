@@ -1,7 +1,6 @@
 package com.kodlamaio.inventoryservice.business.concretes;
 
 import com.kodlamaio.commonpackage.events.inventory.BrandDeletedEvent;
-import com.kodlamaio.commonpackage.utils.kafka.producer.KafkaProducer;
 import com.kodlamaio.commonpackage.utils.mappers.ModelMapperService;
 import com.kodlamaio.inventoryservice.business.abstracts.BrandService;
 import com.kodlamaio.inventoryservice.business.dto.requests.create.CreateBrandRequest;
@@ -11,12 +10,15 @@ import com.kodlamaio.inventoryservice.business.dto.responses.get.GetAllBrandsRes
 import com.kodlamaio.inventoryservice.business.dto.responses.get.GetBrandResponse;
 import com.kodlamaio.inventoryservice.business.dto.responses.update.UpdateBrandResponse;
 import com.kodlamaio.inventoryservice.business.rules.BrandBusinessRules;
+import com.kodlamaio.commonpackage.utils.dto.responses.PageResponse;
 import com.kodlamaio.inventoryservice.entities.Brand;
 import com.kodlamaio.inventoryservice.repository.BrandRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -26,17 +28,14 @@ public class BrandManager implements BrandService
     private final BrandRepository repository;
     private final ModelMapperService mapper;
     private final BrandBusinessRules rules;
-    private final KafkaProducer producer;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
-    public List<GetAllBrandsResponse> getAll() {
-        var brands = repository.findAll();
-        var response = brands
-                .stream()
-                .map(brand -> mapper.forResponse().map(brand, GetAllBrandsResponse.class))
-                .toList();
+    public PageResponse<GetAllBrandsResponse> getAll(Pageable pageable) {
+        var brands = repository.findAll(pageable)
+                .map(brand -> mapper.forResponse().map(brand, GetAllBrandsResponse.class));
 
-        return response;
+        return PageResponse.from(brands);
     }
 
     @Override
@@ -49,6 +48,7 @@ public class BrandManager implements BrandService
     }
 
     @Override
+    @Transactional
     public CreateBrandResponse add(CreateBrandRequest request) {
         var brand = mapper.forRequest().map(request, Brand.class);
         repository.save(brand);
@@ -58,6 +58,7 @@ public class BrandManager implements BrandService
     }
 
     @Override
+    @Transactional
     public UpdateBrandResponse update(UUID id, UpdateBrandRequest request) {
         rules.checkIfBrandExists(id);
         var brand = mapper.forRequest().map(request, Brand.class);
@@ -69,16 +70,11 @@ public class BrandManager implements BrandService
     }
 
     @Override
+    @Transactional
     public void delete(UUID id) {
         rules.checkIfBrandExists(id);
         repository.deleteById(id);
 
-        sendKafkaBrandDeletedEvent(id);
+        applicationEventPublisher.publishEvent(new BrandDeletedEvent(id));
     }
-
-    private void sendKafkaBrandDeletedEvent(UUID id)
-    {
-        producer.sendMessage(new BrandDeletedEvent(id), "brand-deleted");
-    }
-
 }

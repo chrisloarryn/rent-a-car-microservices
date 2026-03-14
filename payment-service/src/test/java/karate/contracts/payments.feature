@@ -29,7 +29,7 @@ Feature: Payment contract
     Then status 200
     And match response.id == paymentId
 
-    Given path 'api', 'payments', 'process-rental-payment'
+    Given path 'api', 'internal', 'payments', 'rental-processing'
     And request
     """
     {

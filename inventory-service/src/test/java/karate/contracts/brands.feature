@@ -21,7 +21,8 @@ Feature: Inventory brand contract
     Given path 'api', 'brands'
     When method get
     Then status 200
-    And match response[*].id contains brandId
+    And match response.content[*].id contains brandId
+    And match response.page == 0
 
     Given path 'api', 'brands', brandId
     When method delete

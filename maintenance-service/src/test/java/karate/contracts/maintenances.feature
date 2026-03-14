@@ -24,7 +24,7 @@ Feature: Maintenance contract
     Given path 'api', 'maintenances'
     When method get
     Then status 200
-    And match response[*].id contains maintenanceId
+    And match response.content[*].id contains maintenanceId
 
     Given path 'api', 'maintenances', maintenanceId
     When method delete

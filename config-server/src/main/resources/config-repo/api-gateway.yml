@@ -1,0 +1,50 @@
+server:
+  port: ${API_GATEWAY_PORT:9010}
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: inventory-service
+          uri: lb://inventory-service
+          predicates:
+            - Path=/inventory-service/**
+          filters:
+            - StripPrefix=1
+        - id: maintenance-service
+          uri: lb://maintenance-service
+          predicates:
+            - Path=/maintenance-service/**
+          filters:
+            - StripPrefix=1
+        - id: payment-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/payment-service/**
+          filters:
+            - StripPrefix=1
+        - id: rental-service
+          uri: lb://rental-service
+          predicates:
+            - Path=/rental-service/**
+          filters:
+            - StripPrefix=1
+        - id: filter-service
+          uri: lb://filter-service
+          predicates:
+            - Path=/filter-service/**
+          filters:
+            - StripPrefix=1
+        - id: invoice-service
+          uri: lb://invoice-service
+          predicates:
+            - Path=/invoice-service/**
+          filters:
+            - StripPrefix=1
+management:
+  endpoint:
+    gateway:
+      access: read-only
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,gateway

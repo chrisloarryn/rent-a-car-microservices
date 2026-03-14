@@ -1,0 +1,11 @@
+server:
+  port: ${PAYMENT_SERVICE_PORT:9013}
+spring:
+  datasource:
+    url: jdbc:postgresql://${PAYMENT_DB_HOST:localhost}:${PAYMENT_DB_PORT:5434}/${PAYMENT_DB_NAME:paymentdb}
+    username: ${PAYMENT_DB_USERNAME:postgres}
+    password: ${PAYMENT_DB_PASSWORD:postgres}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: ${PAYMENT_JPA_DDL_AUTO:update}

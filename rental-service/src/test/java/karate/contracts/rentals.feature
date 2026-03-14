@@ -35,7 +35,7 @@ Feature: Rental contract
     Given path 'api', 'rentals'
     When method get
     Then status 200
-    And match response[*].id contains rentalId
+    And match response.content[*].id contains rentalId
 
     Given path 'api', 'rentals', rentalId
     When method delete

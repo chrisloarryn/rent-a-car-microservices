@@ -24,7 +24,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.code</groupId>
+            <groupId>com.kodlamaio</groupId>
             <artifactId>common-package</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -137,7 +137,7 @@
                                         <argument>--spring.devtools.add-properties=false</argument>
                                         <argument>--server.port=${gatling.server.port}</argument>
                                     </arguments>
-                                    <jvmArguments>-Dspring.devtools.restart.enabled=false -Dspring.devtools.add-properties=false -Dspring.autoconfigure.exclude=org.springframework.cloud.gateway.config.GatewayClassPathWarningAutoConfiguration -Dspring.main.web-application-type=reactive -Dspring.config.import=optional:configserver:http://localhost:8888 -Dspring.cloud.config.fail-fast=false -Deureka.client.enabled=false -Dmanagement.endpoint.gateway.access=read-only</jvmArguments>
+                                    <jvmArguments>${gatling.gateway.jvm.arguments}</jvmArguments>
                                     <jmxPort>${gatling.spring-boot.jmx-port}</jmxPort>
                                     <maxAttempts>60</maxAttempts>
                                     <useTestClasspath>true</useTestClasspath>
